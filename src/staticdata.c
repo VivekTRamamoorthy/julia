@@ -2446,7 +2446,13 @@ JL_DLLEXPORT jl_value_t *jl_restore_package_image_from_file(const char *fname)
     size_t *plen;
     jl_dlsym(pkgimg_handle, "jl_system_image_size", (void **)&plen, 1);
     jl_printf(JL_STDOUT, "pkg_img_size %ld\n", *plen);
-    return jl_restore_system_image_data(pkgimg_data, *plen);
+    jl_sysimg_fptrs_t old_sysimg_fptrs = sysimg_fptrs;
+    // sysimg_fptrs = parse_sysimg(hdl, sysimg_init_cb);
+    // TODO: Do this properly without clobbering global data
+    sysimg_fptrs = jl_init_processor_sysimg(pkgimg_handle);
+    jl_value_t* mod = jl_restore_system_image_data(pkgimg_data, *plen);
+    sysimg_fptrs = old_sysimg_fptrs;
+    return mod;
 }
 
 // --- init ---

@@ -1392,7 +1392,7 @@ end
     m = only(methods(f))
     mi = m.specializations[1]
     ci = mi.cache
-    @test_broken ci.specptr != C_NULL
+    @test ci.specptr != C_NULL
     @test f() == 2
     # Can we reference this first module from a second?
     # In particular, test whether we can access `data2` from code.
