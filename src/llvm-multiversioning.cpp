@@ -937,12 +937,17 @@ Constant *CloneCtx::get_ptrdiff32(Constant *ptr, Constant *base) const
 template<typename T>
 Constant *CloneCtx::emit_offset_table(const std::vector<T*> &vars, StringRef name) const
 {
-    assert(!vars.empty());
-    add_comdat(GlobalAlias::create(T_size, 0, GlobalVariable::ExternalLinkage,
-                                   name + "_base",
-                                   ConstantExpr::getBitCast(vars[0], T_psize), &M));
-    auto vbase = ConstantExpr::getPtrToInt(vars[0], T_size);
     uint32_t nvars = vars.size();
+    Constant *base = nullptr;
+    if (nvars > 0) {
+        base = ConstantExpr::getBitCast(vars[0], T_psize);
+        add_comdat(GlobalAlias::create(T_size, 0, GlobalVariable::ExternalLinkage,
+                                       name + "_base",
+                                       base, &M));
+    } else {
+        base = ConstantExpr::getNullValue(T_psize);
+    }
+    auto vbase = ConstantExpr::getPtrToInt(base, T_size);
     std::vector<Constant*> offsets(nvars + 1);
     offsets[0] = ConstantInt::get(T_int32, nvars);
     offsets[1] = ConstantInt::get(T_int32, 0);

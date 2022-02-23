@@ -149,7 +149,6 @@ static void emit_offset_table(Module &mod, const std::vector<GlobalValue*> &vars
 {
     // Emit a global variable with all the variable addresses.
     // The cloning pass will convert them into offsets.
-    assert(!vars.empty());
     size_t nvars = vars.size();
     std::vector<Constant*> addrs(nvars);
     for (size_t i = 0; i < nvars; i++) {

@@ -2460,7 +2460,9 @@ JL_DLLEXPORT jl_value_t *jl_restore_package_image_from_file(const char *fname)
     // sysimg_fptrs = parse_sysimg(hdl, sysimg_init_cb);
     // TODO: Do this properly without clobbering global data
     sysimg_fptrs = jl_init_processor_sysimg(pkgimg_handle);
-    jl_dlsym(pkgimg_handle, "jl_sysimg_gvars_base", (void **)&sysimg_gvars_base, 1);
+    if (!jl_dlsym(pkgimg_handle, "jl_sysimg_gvars_base", (void **)&sysimg_gvars_base, 0)) {
+        sysimg_gvars_base = NULL;
+    }
     jl_dlsym(pkgimg_handle, "jl_sysimg_gvars_offsets", (void **)&sysimg_gvars_offsets, 1);
     sysimg_gvars_offsets += 1;
     jl_value_t* mod = jl_restore_system_image_data(pkgimg_data, *plen);

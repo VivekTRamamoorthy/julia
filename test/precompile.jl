@@ -1367,6 +1367,25 @@ function link_jilib(path, out, args=``)
     end
 end
 
+@testset "empty module" begin
+    srcdir   = mktempdir()
+    cachedir = mktempdir()
+    cnpath = joinpath(srcdir, "CacheNativeEmpty.jl")
+    open(cnpath, "w") do io
+        write(io, """
+        module CacheNativeEmpty
+        end
+        """)
+    end
+    p, arfile = compilecache(Base.PkgId("CacheNativeEmpty"), cnpath, cachedir)
+    @test success(p)
+    libfile = arfile * ".so"
+    link_jilib(arfile, libfile)
+    display(libfile)
+    wl = ccall(:jl_restore_package_image_from_file, Any, (Ptr{UInt8},), libfile)
+    CNE = wl[1]   # the CacheNativeEmpty module
+end
+
 @testset "static compilation" begin
     srcdir   = mktempdir()
     cachedir = mktempdir()
