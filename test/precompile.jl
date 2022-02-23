@@ -1356,9 +1356,14 @@ function ld(f)
         f(`$lld -flavor gnu`)
     end
 end
+
+is_debug() = ccall(:jl_is_debugbuild, Cint, ()) == 1
+
 function link_jilib(path, out, args=``)
+    LIBDIR = joinpath(Sys.BINDIR, "..", "lib")
+    LIBS = is_debug() ? `-ljulia-debug -ljulia-internal-debug` : `-ljulia -ljulia-internal`
     ld() do ld
-        run(`$ld --shared --output=$out --whole-archive $path --no-whole-archive $args`)
+        run(`$ld --shared --output=$out --whole-archive $path --no-whole-archive -L$(LIBDIR) $LIBS $args`)
     end
 end
 
