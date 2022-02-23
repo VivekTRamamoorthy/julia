@@ -1374,8 +1374,8 @@ end
     open(cnpath, "w") do io
         write(io, """
         module CacheNative1
-        const data1 = [1, 2, 3]
-        const data2 = [4, 5, 6]
+        const data1 = [11, 22, 33]
+        const data2 = [44, 55, 66]
         @noinline uses_data1() = data1[2]
         precompile(uses_data1, ())
         end
@@ -1393,7 +1393,7 @@ end
     mi = m.specializations[1]
     ci = mi.cache
     @test ci.specptr != C_NULL
-    @test f() == 2
+    @test f() == 22
     # Can we reference this first module from a second?
     # In particular, test whether we can access `data2` from code.
     # That's a global variable that wasn't code-referenced in CacheNative1,
@@ -1407,9 +1407,11 @@ end
         write(io, """
         module CacheNative2
         const CacheNative1 = ccall(:jl_restore_package_image_from_file, Any, (Ptr{UInt8},), $(repr(libfile)))[1]::Module
-        @noinline uses_data2() = getfield(CacheNative1, :data2)[2]
-        # @noinline uses_data2() = CacheNative1.data2[2]
-        precompile(uses_data2, ())
+        @noinline uses_cn1_data1() = getfield(CacheNative1, :data1)[3]
+        @noinline uses_cn1_data2() = getfield(CacheNative1, :data2)[2]
+        # @noinline uses_cn1_data2() = CacheNative1.data2[2]
+        precompile(uses_cn1_data1, ())
+        precompile(uses_cn1_data2, ())
         end
         """)
     end
@@ -1424,6 +1426,14 @@ end
     CN2 = wl2[1]   # the CacheNative2 module
     display(CN2)
     display(names(CN2, all=true))
-    f = getfield(CN2, :uses_data2)
-    @test f() == 5
+    # f1 (aka, uses_cn1_data1) uses an item stored in another package as an LLVM gvar
+    # f2 (aka, uses_cn1_data2) uses an item stored in another package that was never stored as an LLVM gvar
+    f1 = getfield(CN2, :uses_cn1_data1)
+    f2 = getfield(CN2, :uses_cn1_data2)
+    m1 = only(methods(f1))
+    @show m1.roots
+    m2 = only(methods(f2))
+    @show m2.roots
+    @test f1() == 33
+    @test f2() == 55
 end

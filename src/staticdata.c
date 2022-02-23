@@ -304,10 +304,14 @@ static arraylist_t ccallable_list;
 
 // Permanent list of void* (begin, end+1) pairs of system/package images we've loaded previously
 // togther with their module build_ids (used for external linkage)
+// jl_linkage_blobs.items[2i:2i+1] correspond to jl_build_ids[i]   (0-offset indexing)
 arraylist_t jl_linkage_blobs;
 jl_array_t *jl_build_ids JL_GLOBALLY_ROOTED = NULL;
 
 // record of build_ids for all external linkages, in order of serialization for the current sysimg/pkgimg
+// conceptually, the base pointer for the jth externally-linked item is determined from
+//     i = findfirst(==(link_ids[j]), jl_build_ids)
+//     blob_base = jl_linkage_blobs.items[2i]                     # 0-offset indexing
 jl_array_t *link_ids = NULL;
 static int link_index = 0;
 
@@ -1010,8 +1014,14 @@ static void jl_write_values(jl_serializer_state *s)
         // if (reloc_offset >= 0x48 && reloc_offset <= 0x58)
         //     jl_printf(JL_STDOUT, "At position 0x%lx, the type-tagged backref_id was 0x%lx\n", reloc_offset, s->gctags_list.items[s->gctags_list.len-1]);
         assert(item < layout_table.len && layout_table.items[item] == NULL);
-        layout_table.items[item] = (void*)reloc_offset;               // store the inverse mapping of `backref_table` (`id` => object)
+        layout_table.items[item] = (void*)reloc_offset;               // store the inverse mapping of `backref_table` (`id` => object-as-streampos)
+        if (jl_get_llvm_gv(native_functions, v) != 0) {
+            jl_printf(JL_STDOUT, "Recording gvar of id %d for ", jl_get_llvm_gv(native_functions, v));
+            jl_(v);
+        }
         record_gvar(s, jl_get_llvm_gv(native_functions, v), ((uintptr_t)DataRef << RELOC_TAG_OFFSET) + reloc_offset);
+        // jl_printf(JL_STDOUT, "Encoding index %ld, item ", i);
+        // jl_(v);
 
         if (externally_linked(v)) {
             write_pointerfield(s, v);
